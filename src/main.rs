@@ -1,7 +1,5 @@
 use std::net::TcpListener;
 use std::io::{Read, Write};
-use std::fs;
-
 
 fn handle_request(path: &str, client: &mut std::net::TcpStream) {
     let response = if path == "/" {
