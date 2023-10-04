@@ -1,8 +1,6 @@
 use std::net::{TcpStream, TcpListener};
 use std::io::{Read, Write};
 
-use anyhow::Result;
-
 pub fn handle_request(mut stream: TcpStream) {
     let mut buffer = [0; 512];
     stream.read(&mut buffer).unwrap();
@@ -24,7 +22,7 @@ fn main() {
 
     for stream in listener.incoming() {
         match stream {
-            Ok(mut stream) => handle_request(stream),
+            Ok(stream) => handle_request(stream),
             Err(e) => {
                 println!("error: {}", e);
             }
