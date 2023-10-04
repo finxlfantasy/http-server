@@ -23,10 +23,15 @@ pub fn handle_request(mut stream: TcpStream) {
     stream.read(&mut buffer).unwrap();
     let request = String::from_utf8_lossy(&buffer[..]);
     let parsed_request: Vec<&str> = request.split_whitespace().collect(); 
-    if parsed_request[1] == "/" {
-        stream.write("HTTP/1.1 200 OK\r\n\r\n".as_bytes()).unwrap();
+
+    if parsed_request.get(1) == Some(&"/") || parsed_request.get(1) == Some(&"") {
+        let response = Response::new(200, "OK".to_string(), "Hello, World!".to_string());
+        let response_string = response.to_string();
+        stream.write(response_string.as_bytes()).unwrap();
     } else {
-        stream.write("HTTP/1.1 404 Not Found\r\n\r\n".as_bytes()).unwrap();
+        let response = Response::new(404, "Not Found".to_string(), "Page not found".to_string());
+        let response_string = response.to_string();
+        stream.write(response_string.as_bytes()).unwrap();
     }
     println!("Request: {}", request);
 }
