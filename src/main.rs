@@ -11,7 +11,7 @@ pub fn handle_request(mut stream: TcpStream) {
     if parsed_request[1] == "/" {
         stream.write("HTTP/1.1 200 OK\r\n\r\n".as_bytes()).unwrap();
     } else {
-        stream.write("HTTP/1.1 404 Not Found\r\nPage not found".as_bytes()).unwrap();
+        stream.write("HTTP/1.1 404 Not Found\r\nContent-Length: 15\r\n\r\nPage not found".as_bytes()).unwrap();
     }
     println!("Request: {}", request);
 }
