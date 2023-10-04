@@ -1,54 +1,32 @@
-use std::net::TcpListener;
+use std::net::{TcpStream, TcpListener};
 use std::io::{Read, Write};
-use std::str;
 
-fn handle_request(path: &str, client: &mut std::net::TcpStream) {
-    let response = if path == "/" {
-        // Respond with 200 OK for the root path
-        "HTTP/1.1 200 OK\r\n\r\nWelcome to the root page!"
+use anyhow::Result;
+
+pub fn handle_request(mut stream: TcpStream) {
+    let mut buffer = [0; 512];
+    stream.read(&mut buffer).unwrap();
+    let request = String::from_utf8_lossy(&buffer[..]).to_string();
+    let parsed_request: Vec<&str> = request.split_whitespace().collect(); 
+    if parsed_request[1] == "/" {
+        stream.write("HTTP/1.1 200 OK\r\n\r\n".as_bytes()).unwrap();
     } else {
-        // Respond with 404 Not Found for any other path
-        "HTTP/1.1 404 Not Found\r\n\r\nPage not found"
-    };
-
-    // Write the response to the client
-    client.write_all(response.as_bytes()).unwrap();
-    client.flush().unwrap();
+        stream.write("HTTP/1.1 404 Not Found\r\nPage not found".as_bytes()).unwrap();
+    }
+    println!("Request: {}", request);
 }
 
 fn main() {
+    // You can use print statements as follows for debugging, they'll be visible when running tests.
     println!("Logs from your program will appear here!");
 
     let listener = TcpListener::bind("127.0.0.1:4221").unwrap();
 
     for stream in listener.incoming() {
         match stream {
-            Ok(mut client) => {
-                println!("Accepted new connection");
-
-                // Read the HTTP request
-                let mut request = Vec::new();
-                client.read_to_end(&mut request).unwrap();
-                let request_str = String::from_utf8_lossy(&request);
-
-                // Parse the HTTP request to extract the path
-                let path = match request_str.lines().next() {
-                    Some(line) => {
-                        let parts: Vec<&str> = line.split_whitespace().collect();
-                        if parts.len() >= 2 {
-                            parts[1]
-                        } else {
-                            "/"
-                        }
-                    }
-                    None => "/",
-                };
-
-                // Handle the request and respond accordingly
-                handle_request(path, &mut client);
-            }
+            Ok(stream) => handle_request(stream),
             Err(e) => {
-                println!("Error: {}", e);
+                println!("error: {}", e);
             }
         }
     }
