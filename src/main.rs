@@ -17,22 +17,35 @@ fn main() {
         }
     }
 }
-
 pub fn handle_request(mut stream: TcpStream) {
     let mut buffer = [0; 512];
     stream.read(&mut buffer).unwrap();
     let request = String::from_utf8_lossy(&buffer[..]);
-    let parsed_request: Vec<&str> = request.split_whitespace().collect(); 
+    let parsed_request: Vec<&str> = request.split_whitespace().collect();
 
-    if parsed_request.get(1) == Some(&"/") || parsed_request.get(1) == Some(&"") {
-        let response = Response::new(200, "OK".to_string(), "Hello, World!".to_string());
-        let response_string = response.to_string();
+    // Check if the request method is GET and the path starts with "/echo/"
+    if parsed_request.get(0) == Some(&"GET") && parsed_request.get(1).map_or(false, |path| path.starts_with("/echo/")) {
+        let response_string = if let Some(random_str) = parsed_request.get(1) {
+            // Extract the random string from the path
+            let random_str = &random_str[6..]; // Remove "/echo/" prefix
+            format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {}\r\n\r\n{}",
+                random_str.len(),
+                random_str
+            )
+        } else {
+            // Invalid request
+            "HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\n\r\n".to_string()
+        };
+
         stream.write(response_string.as_bytes()).unwrap();
     } else {
-        let response = Response::new(404, "Not Found".to_string(), "Page not found".to_string());
-        let response_string = response.to_string();
+        // Handle other types of requests (e.g., not starting with "/echo/")
+        let response_string = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n";
         stream.write(response_string.as_bytes()).unwrap();
     }
+
+    stream.flush().unwrap();
     println!("Request: {}", request);
 }
 
