@@ -6,7 +6,7 @@ use anyhow::Result;
 pub fn handle_request(mut stream: TcpStream) {
     let mut buffer = [0; 512];
     stream.read(&mut buffer).unwrap();
-    let request = String::from_utf8_lossy(&buffer[..]).to_string();
+    let request = String::from_utf8_lossy(&buffer[..]);
     let parsed_request: Vec<&str> = request.split_whitespace().collect(); 
     if parsed_request[1] == "/" {
         stream.write("HTTP/1.1 200 OK\r\n\r\n".as_bytes()).unwrap();
@@ -24,7 +24,7 @@ fn main() {
 
     for stream in listener.incoming() {
         match stream {
-            Ok(stream) => handle_request(stream),
+            Ok(mut stream) => handle_request(stream),
             Err(e) => {
                 println!("error: {}", e);
             }
