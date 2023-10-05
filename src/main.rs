@@ -1,21 +1,25 @@
 use std::net::{TcpStream, TcpListener};
 use std::io::{Read, Write};
-use std::vec;
+use std::{vec, fs};
 use std::thread;
 use std::env; 
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
+   let args: Vec<String> = env::args().collect();
     if args.len() != 3 || args[1] != "--directory" {
         println!("Usage: {} --directory <directory>", args[0]);
         return;
     }
-
+    let directory = &args[2];
+ 
     let listener = TcpListener::bind("127.0.0.1:4221").unwrap();
 
     for stream in listener.incoming() {
         match stream {
-            Ok(stream) => {thread::spawn(|| { handle_request(stream)});   
+            Ok(stream) => {
+                let directory_clone = directory.to_string();
+                thread::spawn(move || { handle_request(stream, &directory_clone);
+            });   
             // ^ Spawns a new thread for each connection/request
         }
             Err(e) => {
@@ -25,11 +29,19 @@ fn main() {
     }
 }
 
-pub fn handle_request(mut stream: TcpStream) {
+pub fn handle_request(mut stream: TcpStream, directory: &str) {
     let mut buffer = [0; 512];
     stream.read(&mut buffer).unwrap();
     let request = String::from_utf8_lossy(&buffer[..]);
     let parsed_request: Vec<&str> = request.split_whitespace().collect(); 
+
+
+    if parsed_request.len() < 2 {
+        stream.write("HTTP/1.1 400 Bad Request\r\n\r\n".as_bytes()).unwrap();
+        return;
+    }
+
+    let requested_path = parsed_request[1];
     
     if parsed_request[1] == "/" {
         stream.write("HTTP/1.1 200 OK\r\n\r\n".as_bytes()).unwrap();
@@ -41,6 +53,12 @@ pub fn handle_request(mut stream: TcpStream) {
         let user_agent = extract_user_agent(&request);
         let response = Response::new(200, "Ok".to_string(), user_agent);
         stream.write(response.to_string().as_bytes()).unwrap();
+    } else if requested_path.starts_with("/files/") {
+        let file_path = format!("{}/{}", directory, &requested_path[7..]);
+            if let Ok(file_content) = fs::read_to_string(&file_path) {
+                let response = Response::new(200, "Ok".to_string(), file_content);
+                stream.write(response.to_string().as_bytes()).unwrap();
+            }
     } else {
         stream.write("HTTP/1.1 404 Not Found\r\n\r\n".as_bytes()).unwrap();
     }
