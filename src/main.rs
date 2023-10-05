@@ -2,13 +2,21 @@ use std::net::{TcpStream, TcpListener};
 use std::io::{Read, Write};
 use std::vec;
 use std::thread;
+use std::env; 
 
 fn main() {
+    let args: Vec<String> = env::args().collect();
+    if args.len() != 3 || args[1] != "--directory" {
+        println!("Usage: {} --directory <directory>", args[0]);
+        return;
+    }
+
     let listener = TcpListener::bind("127.0.0.1:4221").unwrap();
 
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {thread::spawn(|| { handle_request(stream)});   
+            // ^ Spawns a new thread for each connection/request
         }
             Err(e) => {
                 println!("error: {}", e);
