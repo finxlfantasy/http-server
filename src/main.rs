@@ -28,6 +28,10 @@ pub fn handle_request(mut stream: TcpStream) {
         let data = parsed_request[1].replace("/echo/", "");
         let response = Response::new(200, "Ok".to_string(), data);
         stream.write(response.to_string().as_bytes()).unwrap();
+    } else if parsed_request[1] == "/user-agent" {
+        let user_agent = extract_user_agent(&request);
+        let response = Response::new(200, "Ok".to_string(), user_agent);
+        stream.write(response.to_string().as_bytes()).unwrap();
     } else {
         stream.write("HTTP/1.1 404 Not Found\r\n\r\n".as_bytes()).unwrap();
     }
@@ -60,10 +64,11 @@ impl Response {
         }
     }
 
+
+    // adding headers 
     pub fn add_headers(mut self, name: String, value: String) {
         self.headers.push((name, value));
     }
-
 
     pub fn to_string(&self) -> String {
         let mut header_string = format!("HTTP/1.1 {} {}\r\n", self.status_code, self.status_text);
@@ -77,4 +82,13 @@ impl Response {
 
         header_string
     }
+}
+
+fn extract_user_agent(request: &str) -> String {
+    if let Some(start) = request.find("User-Agent: ") {
+        if let Some(end) = request[start..].find("\r\n") {
+            return request[start + 12..start + end].to_string();
+        }
+    }
+    String::from("User-Agent header not found")
 }
