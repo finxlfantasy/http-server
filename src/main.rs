@@ -1,14 +1,15 @@
 use std::net::{TcpStream, TcpListener};
 use std::io::{Read, Write};
 use std::vec;
-
+use std::thread;
 
 fn main() {
     let listener = TcpListener::bind("127.0.0.1:4221").unwrap();
 
     for stream in listener.incoming() {
         match stream {
-            Ok(stream) => handle_request(stream),
+            Ok(stream) => {thread::spawn(|| { handle_request(stream)});   
+        }
             Err(e) => {
                 println!("error: {}", e);
             }
