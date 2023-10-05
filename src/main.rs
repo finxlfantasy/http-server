@@ -2,6 +2,7 @@ use std::net::{TcpStream, TcpListener};
 use std::io::{Read, Write};
 use std::vec;
 
+
 fn main() {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     println!("Logs from your program will appear here!");
@@ -26,6 +27,10 @@ pub fn handle_request(mut stream: TcpStream) {
     
     if parsed_request[1] == "/" {
         stream.write("HTTP/1.1 200 OK\r\n\r\n".as_bytes()).unwrap();
+    } else if parsed_request[1].starts_with("/echo") {
+        let data = parsed_request[1].replace("/echo/", "");
+        let response = Response::new(200, "Ok".to_string(), data);
+        stream.write(response.to_string().as_bytes()).unwrap();
     } else {
         stream.write("HTTP/1.1 404 Not Found\r\n\r\n".as_bytes()).unwrap();
     }
