@@ -3,25 +3,20 @@ use std::io::{Read, Write};
 use std::vec;
 use std::thread;
 use std::env; 
-use std::fs;
+use std:: path::PathBuf;
 
 fn main() {
-   let args: Vec<String> = env::args().collect();
+    let args: Vec<String> = env::args().collect();
     if args.len() != 3 || args[1] != "--directory" {
         println!("Usage: {} --directory <directory>", args[0]);
         return;
     }
 
-    let directory = &args[2];
- 
     let listener = TcpListener::bind("127.0.0.1:4221").unwrap();
 
     for stream in listener.incoming() {
         match stream {
-            Ok(stream) => {
-                let directory_clone = directory.to_string();
-                thread::spawn(move || { handle_request(stream, &directory_clone); 
-                });
+            Ok(stream) => {thread::spawn(|| { handle_request(stream)});   
             // ^ Spawns a new thread for each connection/request
         }
             Err(e) => {
@@ -31,7 +26,7 @@ fn main() {
     }
 }
 
-pub fn handle_request(mut stream: TcpStream, directory: &str) {
+pub fn handle_request(mut stream: TcpStream) {
     let mut buffer = [0; 512];
     stream.read(&mut buffer).unwrap();
     let request = String::from_utf8_lossy(&buffer[..]);
@@ -47,17 +42,6 @@ pub fn handle_request(mut stream: TcpStream, directory: &str) {
         let user_agent = extract_user_agent(&request);
         let response = Response::new(200, "Ok".to_string(), user_agent);
         stream.write(response.to_string().as_bytes()).unwrap();
-    } else if parsed_request[1].starts_with("/files/") {
-        let filename = &parsed_request[1][7..]; // Extract the filename from the path
-        let file_path = format!("{}/{}", directory, filename);
-
-        if let Ok(file_contents) = fs::read(file_path) {
-            let response = Response::new(200, "OK".to_string(), String::from_utf8_lossy(&file_contents).to_string());
-
-            stream.write(response.to_string().as_bytes()).unwrap();
-        } else {
-            stream.write("HTTP/1.1 404 Not Found\r\n\r\n".as_bytes()).unwrap();
-        }
     } else {
         stream.write("HTTP/1.1 404 Not Found\r\n\r\n".as_bytes()).unwrap();
     }
