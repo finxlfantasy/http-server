@@ -75,6 +75,10 @@ fn handle_request(mut stream: TcpStream) {
         let data = parsed_request[1].replace("/echo/", "");
         let response = Response::new(200, "Ok".to_string(), data);
         stream.write(response.to_string().as_bytes()).unwrap();
+    } else if parsed_request[1] == "/user-agent" {
+        let user_agent = extract_user_agent(&request);
+        let response = Response::new(200, "Ok".to_string(), user_agent);
+        stream.write(response.to_string().as_bytes()).unwrap();
     } else if parsed_request[1].starts_with("/file/") {
         let filename = parsed_request[1].replace("/file/", "");
         match fs::read(&filename) {
@@ -87,10 +91,6 @@ fn handle_request(mut stream: TcpStream) {
                 stream.write("HTTP/1.1 404 Not Found\r\n\r\n".as_bytes()).unwrap();
             }
         }
-    } else if parsed_request[1] == "/user-agent" {
-        let user_agent = extract_user_agent(&request);
-        let response = Response::new(200, "Ok".to_string(), user_agent);
-        stream.write(response.to_string().as_bytes()).unwrap();
     } else {
         stream.write("HTTP/1.1 404 Not Found\r\n\r\n".as_bytes()).unwrap();
     }
