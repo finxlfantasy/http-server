@@ -1,107 +1,71 @@
-use std::net::{TcpStream, TcpListener};
-use std::io::{Read, Write};
-use std::vec;
-use std::thread;
-use std::fs;
+use std::{collections::HashMap, env, fs::{self, File}, io::prelude::*, net::{TcpListener, TcpStream}, str, thread};
 
-fn main() {
+fn parse_request(request_str: &str) -> (&str, &str, &str) {
+    let parsed = request_str.splitn(2, "\r\n").collect::<Vec<_>>();
+    let parsed_no_start_line = parsed[1].splitn(2, "\r\n\r\n").collect::<Vec<_>>();
+    (parsed[0], parsed_no_start_line[0], parsed_no_start_line[1])
+}
+
+fn parse_start_line(start_line_str: &str) -> (&str, &str, &str) {
+    let parsed = start_line_str.split_whitespace().collect::<Vec<_>>();
+    (parsed[0], parsed[1], parsed[2])
+}
+
+fn parse_header(header_str: &str) -> HashMap<&str, &str> {
+    header_str.split("\r\n").filter_map(|header_line| {
+        let pair = header_line.split(": ").collect::<Vec<_>>();
+        if pair.len() == 2 { Some((pair[0], pair[1].trim())) } else { None }
+    }).collect()
+}
+
+fn handle_connection(mut stream: TcpStream) {
+    let mut buffer = [0u8; 1024];
+    let request_size = stream.read(&mut buffer).unwrap();
+
+    if let Ok(request_str) = str::from_utf8(&buffer[..request_size]) {
+        println!("request string:\n\n{:?}", request_str);
+        let (start_line_str, header_str, body_str) = parse_request(request_str);
+        let (request_method, request_path, _http_version) = parse_start_line(start_line_str);
+        let headers = parse_header(header_str);
+
+        let response = if request_path == r"/" {
+            "HTTP/1.1 200 OK\r\n\r\n".to_string()
+        } else if request_path.starts_with("/echo/") {
+            let random_string = request_path.split("/echo/").nth(1).unwrap();
+            format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {}\r\n\r\n{}", random_string.len(), random_string)
+        } else if request_path == "/user-agent" {
+            println!("{:?}", headers);
+            let user_agent = headers["User-Agent"];
+            format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {}\r\n\r\n{}", user_agent.len(), user_agent)
+        } else if request_path.starts_with("/files/") {
+            let file_name = request_path.split("/files/").nth(1).unwrap();
+            let file_path = format!("{}/{}", env::args().last().unwrap(), file_name);
+            if request_method == "GET" {
+                match fs::read_to_string(&file_path) {
+                    Ok(file_content) => format!("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {}\r\n\r\n{}", file_content.len(), file_content),
+                    Err(_) => "HTTP/1.1 404 Not Found\r\n\r\n".to_string(),
+                }
+            } else if request_method == "POST" {
+                let mut file = File::create(&file_path).unwrap();
+                file.write_all(body_str.as_bytes()).unwrap();
+                "HTTP/1.1 201 OK\r\n\r\n".to_string()
+            } else {
+                "HTTP/1.1 404 Not Found\r\n\r\n".to_string()
+            }
+        } else {
+            "HTTP/1.1 404 Not Found\r\n\r\n".to_string()
+        };
+        stream.write(response.as_bytes()).unwrap();
+    }
+}
+
+fn main() -> anyhow::Result<()> {
     let listener = TcpListener::bind("127.0.0.1:4221").unwrap();
 
     for stream in listener.incoming() {
-        match stream {
-            Ok(stream) => {thread::spawn(|| { handle_request(stream)});   
-        }
-            Err(e) => {
-                println!("error: {}", e);
-            }
+        if let Ok(_stream) = stream {
+            thread::spawn(|| handle_connection(_stream));
         }
     }
-}
-
-pub struct Request {
-    pub method: String,
-    pub path: String,
-    pub http_version: String,
-}
-
-pub struct Response {
-    pub status_code: u16,
-    pub status_text: String,
-    pub headers: Vec<(String, String)>,
-    pub body: String,
-}
-
-impl Response {
-    pub fn new(status_code: u16, status_text: String, body: String) -> Response {
-        Response {
-            status_code, 
-            status_text,
-            headers: vec![
-                ("Content-Type".to_string(), "text/plain".to_string()),
-                ("Content-Length".to_string(), body.len().to_string()),
-            ],
-            body,
-        }
-    }
-
-    // adding headers 
-    pub fn add_headers(&mut self, name: String, value: String) {
-        self.headers.push((name, value));
-    }
-
-    pub fn to_string(&self) -> String {
-        let mut header_string = format!("HTTP/1.1 {} {}\r\n", self.status_code, self.status_text);
-
-        for (name, value) in &self.headers {
-            header_string.push_str(&format!("{}: {}\r\n", name, value));
-        }
-
-        header_string.push_str("\r\n");
-        header_string.push_str(&self.body);
-
-        header_string
-    }
-}
-
-fn handle_request(mut stream: TcpStream) {
-    let mut buffer = [0; 512];
-    stream.read(&mut buffer).unwrap();
-    let request = String::from_utf8_lossy(&buffer[..]);
-    let parsed_request: Vec<&str> = request.split_whitespace().collect(); 
-    
-    if parsed_request[1] == "/" {
-        stream.write("HTTP/1.1 200 OK\r\n\r\n".as_bytes()).unwrap();
-    } else if parsed_request[1].starts_with("/echo") {
-        let data = parsed_request[1].replace("/echo/", "");
-        let response = Response::new(200, "Ok".to_string(), data);
-        stream.write(response.to_string().as_bytes()).unwrap();
-    } else if parsed_request[1] == "/user-agent" {
-        let user_agent = extract_user_agent(&request);
-        let response = Response::new(200, "Ok".to_string(), user_agent);
-        stream.write(response.to_string().as_bytes()).unwrap();
-    } else if parsed_request[1].starts_with("/files") {
-        let filename = parsed_request[1].replace("/files/", "");
-        match fs::read(&filename) {
-            Ok(contents) => {
-                let mut response = Response::new(200, "Ok".to_string(), String::from_utf8_lossy(&contents).to_string());
-                response.add_headers("Content-Type".to_string(), "application/octet-stream".to_string());
-                stream.write(response.to_string().as_bytes()).unwrap();
-            },
-            Err(_) => {
-                stream.write("HTTP/1.1 404 Not Found\r\n\r\n".as_bytes()).unwrap();
-            }
-        }
-    } else {
-        stream.write("HTTP/1.1 404 Not Found\r\n\r\n".as_bytes()).unwrap();
-    }
-    println!("Request: {}", request);
-}
-
-fn extract_user_agent(request: &str) -> String {
-    if let Some(start) = request.find("User-Agent: ") {
-        if let Some(end) = request[start..].find("\r\n") {
-            return request[start + 12..start + end].to_string();
-        }
-    }
-    String::from("User-Agent header not found")
+    Ok(())
 }
