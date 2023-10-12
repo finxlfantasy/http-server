@@ -81,16 +81,16 @@ fn handle_request(mut stream: TcpStream) {
         stream.write(response.to_string().as_bytes()).unwrap();
     } else if parsed_request[1].starts_with("/files") {
         let filename = parsed_request[1].replace("/files/", "");
-        match fs::read(&filename) {
-            Ok(contents) => {
-                let mut response = Response::new(200, "Ok".to_string(), String::from_utf8_lossy(&contents).to_string());
-                response.add_headers("Content-Type".to_string(), "application/octet-stream".to_string());
-                stream.write(response.to_string().as_bytes()).unwrap();
-            },
-            Err(_) => {
-                stream.write("HTTP/1.1 404 Not Found\r\n\r\n".as_bytes()).unwrap();
-            }
-        }
+        let contents = fs::read(&filename).ok();
+        let response = contents.map(|contents| {
+            let mut response = Response::new(200, "Ok".to_string(), String::from_utf8_lossy(&contents).to_string());
+            response.add_headers("Content-Type".to_string(), "application/octet-stream".to_string());
+            response.to_string()
+        }).unwrap_or_else(|| {
+            let response = Response::new(404, "Not Found".to_string(), String::from(""));
+            response.to_string()
+        });
+        stream.write(response.as_bytes()).unwrap();
     } else {
         stream.write("HTTP/1.1 404 Not Found\r\n\r\n".as_bytes()).unwrap();
     }
