@@ -46,12 +46,9 @@ impl Response {
 
     // adding headers 
     pub fn add_headers(&mut self, name: String, value: String) {
-        if let Some(header) = self.headers.iter_mut().find(|(n, _)| n == &name) {
-            header.1 = value;
-        } else {
-            self.headers.push((name, value));
-        }
+        self.headers.push((name, value));
     }
+
     pub fn to_string(&self) -> String {
         let mut header_string = format!("HTTP/1.1 {} {}\r\n", self.status_code, self.status_text);
 
@@ -83,10 +80,12 @@ fn handle_request(mut stream: TcpStream) {
         let response = Response::new(200, "Ok".to_string(), user_agent);
         stream.write(response.to_string().as_bytes()).unwrap();
     } else if parsed_request[1].starts_with("/files") {
-        let filename = parsed_request[1].replace("/file/", "");
+        let filename = parsed_request[1].replace("/files/", "");
         match fs::read(&filename) {
             Ok(contents) => {
-                stream.write("HTTP/1.1 200 OK\r\n\r\n".as_bytes()).unwrap();
+                let mut response = Response::new(200, "Ok".to_string(), String::from_utf8_lossy(&contents).to_string());
+                response.add_headers("Content-Type".to_string(), "application/octet-stream".to_string());
+                stream.write(response.to_string().as_bytes()).unwrap();
             },
             Err(_) => {
                 stream.write("HTTP/1.1 404 Not Found\r\n\r\n".as_bytes()).unwrap();
