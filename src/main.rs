@@ -1,9 +1,10 @@
 use std::net::{TcpStream, TcpListener};
 use std::io::{Read, Write};
-use std::vec;
 use std::thread;
 use std::env; 
-
+use std::io::prelude::*;
+use std::fs;
+use std::path::PathBuf;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -12,13 +13,16 @@ fn main() {
         return;
     }
 
+    let directory = PathBuf::from(&args[2]);
+
     let listener = TcpListener::bind("127.0.0.1:4221").unwrap();
 
     for stream in listener.incoming() {
         match stream {
-            Ok(stream) => {thread::spawn(|| { handle_request(stream)});   
-            // ^ Spawns a new thread for each connection/request
-        }
+            Ok(stream) => {
+                let directory = directory.clone();
+                thread::spawn(move || { handle_request(stream, &directory) });
+            }
             Err(e) => {
                 println!("error: {}", e);
             }
@@ -26,12 +30,12 @@ fn main() {
     }
 }
 
-pub fn handle_request(mut stream: TcpStream) {
+pub fn handle_request(mut stream: TcpStream, directory: &PathBuf) {
     let mut buffer = [0; 512];
     stream.read(&mut buffer).unwrap();
     let request = String::from_utf8_lossy(&buffer[..]);
     let parsed_request: Vec<&str> = request.split_whitespace().collect(); 
-    
+
     if parsed_request[1] == "/" {
         stream.write("HTTP/1.1 200 OK\r\n\r\n".as_bytes()).unwrap();
     } else if parsed_request[1].starts_with("/echo") {
@@ -42,16 +46,22 @@ pub fn handle_request(mut stream: TcpStream) {
         let user_agent = extract_user_agent(&request);
         let response = Response::new(200, "Ok".to_string(), user_agent);
         stream.write(response.to_string().as_bytes()).unwrap();
-    } else {
-        stream.write("HTTP/1.1 404 Not Found\r\n\r\n".as_bytes()).unwrap();
-    }
-    println!("Request: {}", request);
-}
+    } else if parsed_request[1].starts_with("/files/") {
+        let filename = &parsed_request[1][7..];
+        let filepath = directory.join(filename);
 
-pub struct Request {
-    pub method: String,
-    pub path: String,
-    pub http_version: String,
+        if filepath.exists() {
+            let mut file = fs::File::open(&filepath).unwrap();
+            let mut contents = String::new();
+            file.read_to_string(&mut contents).unwrap();
+
+            let mut response = Response::new(200, "Ok".to_string(), contents);
+            response.add_headers("Content-Type".to_string(), "application/octet-stream".to_string());
+            stream.write(response.to_string().as_bytes()).unwrap();
+        } else {
+            stream.write("HTTP/1.1 404 Not Found\r\n\r\n".as_bytes()).unwrap();
+        }
+    }
 }
 
 pub struct Response {
@@ -74,9 +84,7 @@ impl Response {
         }
     }
 
-
-    // adding headers 
-    pub fn add_headers(mut self, name: String, value: String) {
+    pub fn add_headers(&mut self, name: String, value: String) {
         self.headers.push((name, value));
     }
 
