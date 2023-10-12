@@ -81,8 +81,7 @@ fn handle_request(mut stream: TcpStream) {
         stream.write(response.to_string().as_bytes()).unwrap();
     } else if parsed_request[1].starts_with("/files") {
         let filename = parsed_request[1].replace("/files/", "");
-        let path = Path::new("<directory>").join(filename);
-        match fs::read(&path) {
+        match fs::read(&filename) {
             Ok(contents) => {
                 let mut response = Response::new(200, "Ok".to_string(), String::from_utf8_lossy(&contents).to_string());
                 response.add_headers("Content-Type".to_string(), "application/octet-stream".to_string());
