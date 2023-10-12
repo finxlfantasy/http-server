@@ -88,7 +88,7 @@ fn handle_request(mut stream: TcpStream) {
                 stream.write(response.to_string().as_bytes()).unwrap();
             },
             Err(_) => {
-                stream.write("HTTP/1.1 404 Not Found\r\n\r\n".as_bytes()).unwrap();
+                stream.write("HTTP/1.1 500 Internal Server Error\r\n\r\n".as_bytes()).unwrap();
             }
         }
     } else {
