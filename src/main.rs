@@ -1,8 +1,8 @@
 use std::net::{TcpStream, TcpListener};
 use std::io::{Read, Write};
+use std::vec;
 use std::thread;
 use std::env; 
-use std::io::prelude::*;
 use std::fs;
 use std::path::PathBuf;
 
@@ -21,8 +21,9 @@ fn main() {
         match stream {
             Ok(stream) => {
                 let directory = directory.clone();
-                thread::spawn(move || { handle_request(stream, &directory) });
-            }
+                thread::spawn(move || { handle_request(stream, &directory) });   
+            // ^ Spawns a new thread for each connection/request
+        }
             Err(e) => {
                 println!("error: {}", e);
             }
@@ -35,7 +36,7 @@ pub fn handle_request(mut stream: TcpStream, directory: &PathBuf) {
     stream.read(&mut buffer).unwrap();
     let request = String::from_utf8_lossy(&buffer[..]);
     let parsed_request: Vec<&str> = request.split_whitespace().collect(); 
-
+    
     if parsed_request[1] == "/" {
         stream.write("HTTP/1.1 200 OK\r\n\r\n".as_bytes()).unwrap();
     } else if parsed_request[1].starts_with("/echo") {
@@ -46,22 +47,35 @@ pub fn handle_request(mut stream: TcpStream, directory: &PathBuf) {
         let user_agent = extract_user_agent(&request);
         let response = Response::new(200, "Ok".to_string(), user_agent);
         stream.write(response.to_string().as_bytes()).unwrap();
+        // Handle GET /files/<filename> request
     } else if parsed_request[1].starts_with("/files/") {
+        // Extract the filename from the request
         let filename = &parsed_request[1][7..];
+        // Join the filename with the directory to get the full path
         let filepath = directory.join(filename);
-
+        // Check if the file exists
         if filepath.exists() {
+            // Open the file and read its contents
             let mut file = fs::File::open(&filepath).unwrap();
             let mut contents = String::new();
             file.read_to_string(&mut contents).unwrap();
 
+            // Create a response with the file contents as the body
             let mut response = Response::new(200, "Ok".to_string(), contents);
+            // Set the content type to application/octet-stream
             response.add_headers("Content-Type".to_string(), "application/octet-stream".to_string());
             stream.write(response.to_string().as_bytes()).unwrap();
-        } else {
-            stream.write("HTTP/1.1 404 Not Found\r\n\r\n".as_bytes()).unwrap();
-        }
+            } else {
+                stream.write("HTTP/1.1 404 Not Found\r\n\r\n".as_bytes()).unwrap();
+            println!("Request: {}", request);
+            }
     }
+}
+
+pub struct Request {
+    pub method: String,
+    pub path: String,
+    pub http_version: String,
 }
 
 pub struct Response {
@@ -84,6 +98,8 @@ impl Response {
         }
     }
 
+
+    // adding headers 
     pub fn add_headers(&mut self, name: String, value: String) {
         self.headers.push((name, value));
     }
