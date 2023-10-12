@@ -46,9 +46,12 @@ impl Response {
 
     // adding headers 
     pub fn add_headers(&mut self, name: String, value: String) {
-        self.headers.push((name, value));
+        if let Some(header) = self.headers.iter_mut().find(|(n, _)| n == &name) {
+            header.1 = value;
+        } else {
+            self.headers.push((name, value));
+        }
     }
-
     pub fn to_string(&self) -> String {
         let mut header_string = format!("HTTP/1.1 {} {}\r\n", self.status_code, self.status_text);
 
