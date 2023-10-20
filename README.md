@@ -13,7 +13,6 @@ cd http-server-rust
 ```
 
 ### Build and Run:
-
 ```
 cargo build
 cargo run
