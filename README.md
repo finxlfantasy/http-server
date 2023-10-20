@@ -11,6 +11,7 @@ This repository contains a simple HTTP server implemented in Rust. The server ca
 git clone https://github.com/your-username/http-server-rust.git
 cd http-server-rust
 ```
+
 ### Build and Run:
 
 cargo build
