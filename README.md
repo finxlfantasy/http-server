@@ -1,39 +1,47 @@
 [![progress-banner](https://backend.codecrafters.io/progress/http-server/8c9181f6-a64f-49ab-bb6a-1852e69e5327)](https://app.codecrafters.io/users/finxlfantasy?r=2qF)
 
-This is a starting point for Rust solutions to the
-["Build Your Own HTTP server" Challenge](https://app.codecrafters.io/courses/http-server/overview).
+HTTP Server in Rust
+This repository contains a simple HTTP server implemented in Rust. The server can handle incoming requests, parse them, and generate appropriate responses. Below are the key components and functionalities of the server.
 
-[HTTP](https://en.wikipedia.org/wiki/Hypertext_Transfer_Protocol) is the
-protocol that powers the web. In this challenge, you'll build a HTTP/1.1 server
-that is capable of serving multiple clients.
+Getting Started
+Prerequisites: Make sure you have Rust installed on your system. If not, you can download it from here.
 
-Along the way you'll learn about TCP servers,
-[HTTP request syntax](https://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html),
-and more.
+Clone the Repository:
 
-**Note**: If you're viewing this repo on GitHub, head over to
-[codecrafters.io](https://codecrafters.io) to try the challenge.
+git clone https://github.com/your-username/http-server-rust.git
+cd http-server-rust
 
-# Passing the first stage
+Build and Run:
 
-The entry point for your HTTP server implementation is in `src/main.rs`. Study
-and uncomment the relevant code, and push your changes to pass the first stage:
+cargo build
+cargo run
 
-```sh
-git add .
-git commit -m "pass 1st stage" # any msg
-git push origin master
-```
+The server will start listening on port 8080 by default.
 
-Time to move on to the next stage!
+Components
+1. Request Parsing
+The server parses incoming HTTP requests into three main components:
 
-# Stage 2 & beyond
+Start Line: Extracts the request method, request path, and HTTP version.
+Headers: Parses headers into a HashMap for easy access.
+Body: Retrieves the body content (if any).
+2. handle_connection Function
+The heart of the server lies in the handle_connection function:
 
-Note: This section is for stages 2 and beyond.
+Rust
+AI-generated code. Review and use carefully. More info on FAQ.
 
-1. Ensure you have `cargo (1.70)` installed locally
-1. Run `./your_server.sh` to run your program, which is implemented in
-   `src/main.rs`. This command compiles your Rust project, so it might be slow
-   the first time you run it. Subsequent runs will be fast.
-1. Commit your changes and run `git push origin master` to submit your solution
-   to CodeCrafters. Test output will be streamed to your terminal.
+fn handle_connection(mut stream: TcpStream) {
+    // Implementation details...
+}
+This function is called for each incoming connection. It reads the request, processes it, and generates an appropriate response.
+
+3. Response Generation
+The server currently provides a basic response for requests:
+
+For the root path (“/”), it returns an “HTTP 200 OK” response.
+For paths starting with “/echo/”, it echoes back the requested path.
+Usage
+Open your web browser and navigate to http://localhost:8080.
+Send requests to http://localhost:8080/your-path.
+Feel free to customize this server for your specific use case!
