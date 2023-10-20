@@ -41,7 +41,7 @@ The server currently provides a basic response for requests:
 
 For the root path (“/”), it returns an “HTTP 200 OK” response.
 For paths starting with “/echo/”, it echoes back the requested path.
-Usage
+# Usage
 Open your web browser and navigate to http://localhost:8080.
 Send requests to http://localhost:8080/your-path.
 Feel free to customize this server for your specific use case!
@@ -49,18 +49,18 @@ Feel free to customize this server for your specific use case!
 # Customizing Responses
 You can easily customize the server’s behavior by modifying the handle_connection function. Here are some ideas:
 
-1. Dynamic Content
+## 1. Dynamic Content
 Instead of fixed responses, generate dynamic content based on the request. For example:
 
 Return the current date and time.
 Fetch data from a database or an external API.
 Serve files from a specific directory.
-2. Error Handling
+## 2. Error Handling
 Improve error handling by adding appropriate status codes and error messages. For instance:
 
 Handle invalid request paths with a “404 Not Found” response.
 Check for malformed requests and respond with a “400 Bad Request” status.
-3. Security Measures
+## 3. Security Measures
 Consider security aspects:
 
 Implement rate limiting to prevent abuse.
