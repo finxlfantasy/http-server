@@ -3,8 +3,8 @@
 HTTP Server in Rust
 This repository contains a simple HTTP server implemented in Rust. The server can handle incoming requests, parse them, and generate appropriate responses. Below are the key components and functionalities of the server.
 
-Getting Started
-Prerequisites: Make sure you have Rust installed on your system. If not, you can download it from here.
+$ Getting Started
+$$$ Prerequisites: Make sure you have Rust installed on your system. If not, you can download it from here.
 
 Clone the Repository:
 
