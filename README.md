@@ -30,7 +30,7 @@ Body: Retrieves the body content (if any).
 ## 2. handle_connection Function
 The heart of the server lies in the handle_connection function:
 
-Rust
+### Rust
 ```
 fn handle_connection(mut stream: TcpStream) {
     // Implementation details...
