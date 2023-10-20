@@ -14,8 +14,10 @@ cd http-server-rust
 
 ### Build and Run:
 
+```
 cargo build
 cargo run
+```
 
 The server will start listening on port 8080 by default.
 
@@ -30,11 +32,12 @@ Body: Retrieves the body content (if any).
 The heart of the server lies in the handle_connection function:
 
 Rust
-AI-generated code. Review and use carefully. More info on FAQ.
-
+```
 fn handle_connection(mut stream: TcpStream) {
     // Implementation details...
 }
+```
+
 This function is called for each incoming connection. It reads the request, processes it, and generates an appropriate response.
 
 ## 3. Response Generation
