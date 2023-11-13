@@ -1,4 +1,3 @@
-[![progress-banner](https://backend.codecrafters.io/progress/http-server/8c9181f6-a64f-49ab-bb6a-1852e69e5327)](https://app.codecrafters.io/users/finxlfantasy?r=2qF)
 
 HTTP Server in Rust
 This repository contains a simple HTTP server implemented in Rust. The server can handle incoming requests, parse them, and generate appropriate responses. Below are the key components and functionalities of the server.
