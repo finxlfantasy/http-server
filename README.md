@@ -1,5 +1,5 @@
 
-HTTP Server in Rust
+# HTTP Server in Rust
 This repository contains a simple HTTP server implemented in Rust. The server can handle incoming requests, parse them, and generate appropriate responses. Below are the key components and functionalities of the server.
 
 # Getting Started
